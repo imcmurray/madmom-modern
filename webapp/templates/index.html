@@ -610,6 +610,35 @@
             padding: 20px;
         }
 
+        .realtime-bpm {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-primary);
+            padding: 8px 14px;
+            border-radius: 8px;
+            min-width: 100px;
+        }
+
+        .realtime-bpm-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: monospace;
+            min-width: 45px;
+            text-align: right;
+        }
+
+        .realtime-bpm-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .realtime-bpm.no-data .realtime-bpm-value {
+            color: var(--text-secondary);
+        }
+
         @media (max-width: 768px) {
             header h1 {
                 font-size: 1.8rem;
@@ -703,6 +732,10 @@
                         <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
                     </svg>
                     <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.1" value="0.8">
+                </div>
+                <div class="realtime-bpm no-data" id="realtime-bpm">
+                    <span class="realtime-bpm-value" id="realtime-bpm-value">--</span>
+                    <span class="realtime-bpm-label">BPM</span>
                 </div>
             </div>
 
@@ -1112,7 +1145,46 @@
             progressFill.style.width = `${progress}%`;
             playhead.style.left = `${progress}%`;
             document.getElementById('current-time').textContent = formatTime(audioPlayer.currentTime);
+            updateRealtimeBPM(audioPlayer.currentTime);
         });
+
+        function updateRealtimeBPM(currentTime) {
+            const bpmElement = document.getElementById('realtime-bpm');
+            const bpmValue = document.getElementById('realtime-bpm-value');
+
+            if (beats.length < 2) {
+                bpmValue.textContent = '--';
+                bpmElement.classList.add('no-data');
+                return;
+            }
+
+            // Find beats near current position (within ~3 seconds window)
+            const windowSize = 3.0;
+            const nearbyBeats = beats.filter(beat =>
+                beat >= currentTime - windowSize && beat <= currentTime + windowSize
+            );
+
+            if (nearbyBeats.length < 2) {
+                // Fall back to global average if no local beats
+                const totalInterval = beats[beats.length - 1] - beats[0];
+                const avgInterval = totalInterval / (beats.length - 1);
+                const globalBPM = Math.round(60 / avgInterval);
+                bpmValue.textContent = globalBPM;
+                bpmElement.classList.remove('no-data');
+                return;
+            }
+
+            // Calculate average interval between nearby beats
+            let totalInterval = 0;
+            for (let i = 1; i < nearbyBeats.length; i++) {
+                totalInterval += nearbyBeats[i] - nearbyBeats[i - 1];
+            }
+            const avgInterval = totalInterval / (nearbyBeats.length - 1);
+            const localBPM = Math.round(60 / avgInterval);
+
+            bpmValue.textContent = localBPM;
+            bpmElement.classList.remove('no-data');
+        }
 
         function seekAudio(e) {
             const rect = e.currentTarget.getBoundingClientRect();
@@ -1301,6 +1373,8 @@
             beatMarkers.innerHTML = '';
             progressFill.style.width = '0%';
             playhead.style.left = '0';
+            document.getElementById('realtime-bpm-value').textContent = '--';
+            document.getElementById('realtime-bpm').classList.add('no-data');
 
             uploadSection.classList.remove('hidden');
             samplesSection.classList.remove('hidden');
