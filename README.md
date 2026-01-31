@@ -19,13 +19,26 @@ madmom is an audio signal processing library written in Python with a strong foc
 
 This fork includes the following modernization updates:
 
-- **Python 3.11+ compatibility**: Updated all deprecated syntax and imports
-- **NumPy 2.x+ compatibility**: Replaced deprecated NumPy type aliases (`np.float` -> `np.float64`, `np.int` -> `np.int64`, `np.bool` -> `np.bool_`)
+- **Python 3.12+ compatibility**: Removed `distutils` dependency (removed in Python 3.12)
+- **NumPy 2.x+ compatibility**:
+  - Replaced deprecated NumPy type aliases (`np.float` -> `np.float64`, `np.int` -> `np.int64`, `np.bool` -> `np.bool_`)
+  - Fixed inhomogeneous array creation in HMM decoding
+  - Migrated model files to NumPy 2.x pickle format (eliminates deprecation warnings)
 - **collections.abc imports**: Migrated abstract base class imports from `collections` to `collections.abc`
 - **Modern build system**: Added `pyproject.toml` for PEP 517/518 compliance
 - **Updated Cython**: Compatible with Cython 3.x
 - **Updated dependencies**: Uses latest secure versions of NumPy, SciPy, and other dependencies
 - **Secure model loading**: SHA256 hash verification and restricted unpickling for pickle files
+
+### Model Migration
+
+The pre-trained model files have been migrated to NumPy 2.x format. If you need to migrate models from an older installation:
+
+```bash
+python scripts/migrate_models.py
+```
+
+Note: The TCN (Temporal Convolutional Network) beat models (`beats/2019/`) are not yet supported as the `TCNLayer` implementation is pending.
 
 ## Security
 
