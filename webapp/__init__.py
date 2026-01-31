@@ -1,0 +1,1 @@
+"""Madmom Modern Web Interface."""

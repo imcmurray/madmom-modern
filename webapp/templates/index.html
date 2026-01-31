@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Madmom Modern - Beat Detection</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --accent: #e94560;
+            --accent-secondary: #0f3460;
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0a0;
+            --beat-color: #4ade80;
+            --downbeat-color: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--accent), #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .upload-section {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 2px dashed var(--accent-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .upload-section.dragover {
+            border-color: var(--accent);
+            background: rgba(233, 69, 96, 0.1);
+        }
+
+        .upload-section.hidden {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .upload-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            background: #d63d56;
+            transform: translateY(-2px);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .player-section {
+            display: none;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .player-section.visible {
+            display: block;
+        }
+
+        .song-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .song-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .song-meta {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .new-song-btn {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .new-song-btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .waveform-container {
+            position: relative;
+            height: 200px;
+            background: var(--bg-primary);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        #waveform {
+            width: 100%;
+            height: 100%;
+        }
+
+        .beat-markers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .beat-marker {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            opacity: 0.7;
+        }
+
+        .beat-marker.beat {
+            background: var(--beat-color);
+        }
+
+        .beat-marker.downbeat {
+            background: var(--downbeat-color);
+            width: 3px;
+            opacity: 1;
+        }
+
+        .playhead {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background: white;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .play-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .play-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        .time-display {
+            font-family: monospace;
+            font-size: 1rem;
+            color: var(--text-secondary);
+            min-width: 120px;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 6px;
+            background: var(--bg-primary);
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .volume-slider {
+            width: 80px;
+            -webkit-appearance: none;
+            height: 4px;
+            background: var(--bg-primary);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+
+        .legend-color.beat {
+            background: var(--beat-color);
+        }
+
+        .legend-color.downbeat {
+            background: var(--downbeat-color);
+        }
+
+        .params-section {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .params-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .params-header h3 {
+            font-size: 1.2rem;
+        }
+
+        .params-toggle {
+            background: transparent;
+            border: 1px solid var(--text-secondary);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .param-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .param-group label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .param-value {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .param-group input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 6px;
+            background: var(--bg-primary);
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .param-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .param-group select {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--accent-secondary);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .param-group input[type="text"] {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--accent-secondary);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        .process-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--accent), #ff6b6b);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .process-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(233, 69, 96, 0.3);
+        }
+
+        .process-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .results-section {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .result-card {
+            background: var(--bg-primary);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .result-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 5px;
+        }
+
+        .result-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .status-message.loading {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .status-message.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .status-message.success {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .beat-list {
+            max-height: 300px;
+            overflow-y: auto;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .beat-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .beat-list-toggle {
+            background: transparent;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .beat-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .beat-table th,
+        .beat-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--accent-secondary);
+        }
+
+        .beat-table th {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .beat-table tr:hover {
+            background: rgba(233, 69, 96, 0.1);
+            cursor: pointer;
+        }
+
+        .beat-table .downbeat-row {
+            color: var(--downbeat-color);
+            font-weight: 600;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 20px;
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .controls {
+                flex-wrap: wrap;
+            }
+
+            .progress-bar {
+                order: 3;
+                width: 100%;
+                flex: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Madmom Modern</h1>
+            <p>Beat & Downbeat Detection for Python 3.11+ and NumPy 2.x+</p>
+        </header>
+
+        <!-- Upload Section -->
+        <div class="upload-section" id="upload-section">
+            <div class="upload-icon">🎵</div>
+            <h2>Drop your audio file here</h2>
+            <p style="color: var(--text-secondary); margin: 15px 0;">or</p>
+            <button class="upload-btn" onclick="document.getElementById('file-input').click()">
+                Choose File
+            </button>
+            <input type="file" id="file-input" accept=".wav,.mp3,.flac,.ogg,.m4a,.aac">
+            <p style="color: var(--text-secondary); margin-top: 15px; font-size: 0.9rem;">
+                Supported formats: WAV, MP3, FLAC, OGG, M4A, AAC (max 50MB)
+            </p>
+        </div>
+
+        <!-- Player Section -->
+        <div class="player-section" id="player-section">
+            <div class="song-info">
+                <div>
+                    <div class="song-title" id="song-title">Song Title</div>
+                    <div class="song-meta" id="song-meta"></div>
+                </div>
+                <button class="new-song-btn" onclick="loadNewSong()">Load New Song</button>
+            </div>
+
+            <div class="waveform-container" id="waveform-container">
+                <canvas id="waveform"></canvas>
+                <div class="beat-markers" id="beat-markers"></div>
+                <div class="playhead" id="playhead" style="left: 0;"></div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color beat"></div>
+                    <span>Beat</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color downbeat"></div>
+                    <span>Downbeat (Bar Start)</span>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="play-btn" id="play-btn" onclick="togglePlay()">
+                    <svg id="play-icon" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    <svg id="pause-icon" class="hidden" viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                    </svg>
+                </button>
+                <span class="time-display">
+                    <span id="current-time">0:00</span> / <span id="duration">0:00</span>
+                </span>
+                <div class="progress-bar" id="progress-bar" onclick="seekAudio(event)">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="volume-control">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+                    </svg>
+                    <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.1" value="0.8">
+                </div>
+            </div>
+
+            <audio id="audio-player"></audio>
+        </div>
+
+        <!-- Status Message -->
+        <div class="status-message hidden" id="status-message"></div>
+
+        <!-- Parameters Section -->
+        <div class="params-section" id="params-section">
+            <div class="params-header">
+                <h3>Detection Parameters</h3>
+                <button class="params-toggle" id="params-toggle" onclick="toggleAdvanced()">
+                    Show Advanced
+                </button>
+            </div>
+
+            <div class="params-grid">
+                <div class="param-group">
+                    <label>
+                        Detection Mode
+                    </label>
+                    <select id="mode">
+                        <option value="downbeats">Beats + Downbeats</option>
+                        <option value="beats">Beats Only</option>
+                    </select>
+                </div>
+
+                <div class="param-group">
+                    <label>
+                        Min BPM
+                        <span class="param-value" id="min-bpm-value">55</span>
+                    </label>
+                    <input type="range" id="min-bpm" min="30" max="150" value="55">
+                </div>
+
+                <div class="param-group">
+                    <label>
+                        Max BPM
+                        <span class="param-value" id="max-bpm-value">215</span>
+                    </label>
+                    <input type="range" id="max-bpm" min="100" max="300" value="215">
+                </div>
+
+                <div class="param-group" id="beats-per-bar-group">
+                    <label>
+                        Time Signatures
+                    </label>
+                    <select id="beats-per-bar">
+                        <option value="3,4">3/4 and 4/4</option>
+                        <option value="4">4/4 only</option>
+                        <option value="3">3/4 only</option>
+                        <option value="2,3,4">2/4, 3/4, and 4/4</option>
+                        <option value="6">6/8</option>
+                        <option value="custom">Custom...</option>
+                    </select>
+                </div>
+
+                <div class="param-group hidden" id="custom-beats-group">
+                    <label>
+                        Custom Beats Per Bar
+                    </label>
+                    <input type="text" id="custom-beats" placeholder="e.g., 5,7">
+                </div>
+
+                <div class="param-group advanced hidden">
+                    <label>
+                        Transition Lambda
+                        <span class="param-value" id="lambda-value">100</span>
+                    </label>
+                    <input type="range" id="transition-lambda" min="1" max="500" value="100">
+                </div>
+
+                <div class="param-group advanced hidden">
+                    <label>
+                        FPS (Frames/Second)
+                        <span class="param-value" id="fps-value">100</span>
+                    </label>
+                    <input type="range" id="fps" min="50" max="200" value="100">
+                </div>
+            </div>
+
+            <button class="process-btn" id="process-btn" onclick="processAudio()">
+                Analyze Beats
+            </button>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section hidden" id="results-section">
+            <h3 style="margin-bottom: 15px;">Detection Results</h3>
+            <div class="results-grid">
+                <div class="result-card">
+                    <div class="result-value" id="result-bpm">--</div>
+                    <div class="result-label">Estimated BPM</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-value" id="result-beats">--</div>
+                    <div class="result-label">Total Beats</div>
+                </div>
+                <div class="result-card" id="downbeats-card">
+                    <div class="result-value" id="result-downbeats">--</div>
+                    <div class="result-label">Downbeats</div>
+                </div>
+                <div class="result-card" id="bars-card">
+                    <div class="result-value" id="result-bars">--</div>
+                    <div class="result-label">Bars</div>
+                </div>
+            </div>
+
+            <div class="beat-list-header" style="margin-top: 20px;">
+                <h4>Beat Timestamps</h4>
+                <button class="beat-list-toggle" id="beat-list-toggle" onclick="toggleBeatList()">
+                    Show List
+                </button>
+            </div>
+            <div class="beat-list hidden" id="beat-list">
+                <table class="beat-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Time</th>
+                            <th>Bar Position</th>
+                        </tr>
+                    </thead>
+                    <tbody id="beat-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer>
+            <p>Powered by <a href="https://github.com/imcmurray/madmom-modern" target="_blank">madmom-modern</a></p>
+        </footer>
+    </div>
+
+    <script>
+        // State
+        let audioContext = null;
+        let audioBuffer = null;
+        let audioSource = null;
+        let currentFile = null;
+        let currentFilename = null;
+        let isPlaying = false;
+        let beatData = [];
+        let beats = [];
+        let downbeats = [];
+        let duration = 0;
+
+        // DOM Elements
+        const audioPlayer = document.getElementById('audio-player');
+        const uploadSection = document.getElementById('upload-section');
+        const playerSection = document.getElementById('player-section');
+        const paramsSection = document.getElementById('params-section');
+        const resultsSection = document.getElementById('results-section');
+        const statusMessage = document.getElementById('status-message');
+        const waveformCanvas = document.getElementById('waveform');
+        const beatMarkers = document.getElementById('beat-markers');
+        const playhead = document.getElementById('playhead');
+        const progressFill = document.getElementById('progress-fill');
+
+        // File Upload Handling
+        const fileInput = document.getElementById('file-input');
+
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        async function handleFile(file) {
+            showStatus('Uploading file...', 'loading');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Upload failed');
+                }
+
+                currentFilename = data.filename;
+                currentFile = file;
+
+                // Set up audio player
+                const audioUrl = `/uploads/${currentFilename}`;
+                audioPlayer.src = audioUrl;
+
+                document.getElementById('song-title').textContent = data.original_name;
+
+                // Wait for audio to load
+                audioPlayer.addEventListener('loadedmetadata', () => {
+                    duration = audioPlayer.duration;
+                    document.getElementById('duration').textContent = formatTime(duration);
+                    document.getElementById('song-meta').textContent = `Duration: ${formatTime(duration)}`;
+
+                    // Draw waveform
+                    drawWaveformFromFile(file);
+                }, { once: true });
+
+                // Show player section
+                uploadSection.classList.add('hidden');
+                playerSection.classList.add('visible');
+                paramsSection.classList.remove('hidden');
+
+                hideStatus();
+
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        }
+
+        async function drawWaveformFromFile(file) {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                const arrayBuffer = await file.arrayBuffer();
+                audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+                drawWaveform(audioBuffer);
+            } catch (error) {
+                console.error('Error drawing waveform:', error);
+            }
+        }
+
+        function drawWaveform(buffer) {
+            const canvas = waveformCanvas;
+            const ctx = canvas.getContext('2d');
+            const container = canvas.parentElement;
+
+            // Set canvas size
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
+
+            const data = buffer.getChannelData(0);
+            const step = Math.ceil(data.length / canvas.width);
+            const amp = canvas.height / 2;
+
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.beginPath();
+            ctx.moveTo(0, amp);
+
+            // Draw waveform
+            for (let i = 0; i < canvas.width; i++) {
+                let min = 1.0;
+                let max = -1.0;
+
+                for (let j = 0; j < step; j++) {
+                    const datum = data[(i * step) + j];
+                    if (datum < min) min = datum;
+                    if (datum > max) max = datum;
+                }
+
+                ctx.fillStyle = '#4a5568';
+                ctx.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
+            }
+        }
+
+        function renderBeatMarkers() {
+            beatMarkers.innerHTML = '';
+
+            if (!duration || duration === 0) return;
+
+            const containerWidth = beatMarkers.offsetWidth;
+
+            beats.forEach((time, index) => {
+                const isDownbeat = downbeats.includes(time);
+                const marker = document.createElement('div');
+                marker.className = `beat-marker ${isDownbeat ? 'downbeat' : 'beat'}`;
+                marker.style.left = `${(time / duration) * 100}%`;
+                marker.title = `${isDownbeat ? 'Downbeat' : 'Beat'}: ${time.toFixed(3)}s`;
+                beatMarkers.appendChild(marker);
+            });
+        }
+
+        // Playback Controls
+        function togglePlay() {
+            if (isPlaying) {
+                audioPlayer.pause();
+            } else {
+                audioPlayer.play();
+            }
+        }
+
+        audioPlayer.addEventListener('play', () => {
+            isPlaying = true;
+            document.getElementById('play-icon').classList.add('hidden');
+            document.getElementById('pause-icon').classList.remove('hidden');
+        });
+
+        audioPlayer.addEventListener('pause', () => {
+            isPlaying = false;
+            document.getElementById('play-icon').classList.remove('hidden');
+            document.getElementById('pause-icon').classList.add('hidden');
+        });
+
+        audioPlayer.addEventListener('timeupdate', () => {
+            const progress = (audioPlayer.currentTime / duration) * 100;
+            progressFill.style.width = `${progress}%`;
+            playhead.style.left = `${progress}%`;
+            document.getElementById('current-time').textContent = formatTime(audioPlayer.currentTime);
+        });
+
+        function seekAudio(e) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            audioPlayer.currentTime = pos * duration;
+        }
+
+        document.getElementById('volume-slider').addEventListener('input', (e) => {
+            audioPlayer.volume = e.target.value;
+        });
+
+        // Parameter Controls
+        document.getElementById('min-bpm').addEventListener('input', (e) => {
+            document.getElementById('min-bpm-value').textContent = e.target.value;
+        });
+
+        document.getElementById('max-bpm').addEventListener('input', (e) => {
+            document.getElementById('max-bpm-value').textContent = e.target.value;
+        });
+
+        document.getElementById('transition-lambda').addEventListener('input', (e) => {
+            document.getElementById('lambda-value').textContent = e.target.value;
+        });
+
+        document.getElementById('fps').addEventListener('input', (e) => {
+            document.getElementById('fps-value').textContent = e.target.value;
+        });
+
+        document.getElementById('mode').addEventListener('change', (e) => {
+            const beatsPerBarGroup = document.getElementById('beats-per-bar-group');
+            if (e.target.value === 'beats') {
+                beatsPerBarGroup.classList.add('hidden');
+            } else {
+                beatsPerBarGroup.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('beats-per-bar').addEventListener('change', (e) => {
+            const customGroup = document.getElementById('custom-beats-group');
+            if (e.target.value === 'custom') {
+                customGroup.classList.remove('hidden');
+            } else {
+                customGroup.classList.add('hidden');
+            }
+        });
+
+        function toggleAdvanced() {
+            const advanced = document.querySelectorAll('.param-group.advanced');
+            const btn = document.getElementById('params-toggle');
+            advanced.forEach(el => el.classList.toggle('hidden'));
+            btn.textContent = btn.textContent.includes('Show') ? 'Hide Advanced' : 'Show Advanced';
+        }
+
+        // Process Audio
+        async function processAudio() {
+            if (!currentFilename) {
+                showStatus('Please upload a file first', 'error');
+                return;
+            }
+
+            const processBtn = document.getElementById('process-btn');
+            processBtn.disabled = true;
+            processBtn.textContent = 'Processing...';
+
+            showStatus('Analyzing beats... This may take a moment.', 'loading');
+
+            const mode = document.getElementById('mode').value;
+            let beatsPerBar = document.getElementById('beats-per-bar').value;
+
+            if (beatsPerBar === 'custom') {
+                beatsPerBar = document.getElementById('custom-beats').value;
+            }
+
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: currentFilename,
+                        mode: mode,
+                        fps: parseInt(document.getElementById('fps').value),
+                        min_bpm: parseFloat(document.getElementById('min-bpm').value),
+                        max_bpm: parseFloat(document.getElementById('max-bpm').value),
+                        transition_lambda: parseFloat(document.getElementById('transition-lambda').value),
+                        beats_per_bar: beatsPerBar
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Processing failed');
+                }
+
+                // Update state
+                beats = data.beats || [];
+                downbeats = data.downbeats || [];
+                beatData = data.beat_data || [];
+
+                // Render markers
+                renderBeatMarkers();
+
+                // Update results
+                document.getElementById('result-bpm').textContent = data.estimated_bpm || '--';
+                document.getElementById('result-beats').textContent = data.num_beats || 0;
+
+                if (mode === 'downbeats') {
+                    document.getElementById('result-downbeats').textContent = data.num_downbeats || 0;
+                    document.getElementById('result-bars').textContent = data.num_downbeats || 0;
+                    document.getElementById('downbeats-card').classList.remove('hidden');
+                    document.getElementById('bars-card').classList.remove('hidden');
+                } else {
+                    document.getElementById('downbeats-card').classList.add('hidden');
+                    document.getElementById('bars-card').classList.add('hidden');
+                }
+
+                // Populate beat list
+                populateBeatList(beatData);
+
+                resultsSection.classList.remove('hidden');
+                showStatus('Analysis complete!', 'success');
+
+                setTimeout(hideStatus, 3000);
+
+            } catch (error) {
+                showStatus(error.message, 'error');
+            } finally {
+                processBtn.disabled = false;
+                processBtn.textContent = 'Analyze Beats';
+            }
+        }
+
+        function populateBeatList(data) {
+            const tbody = document.getElementById('beat-table-body');
+            tbody.innerHTML = '';
+
+            data.forEach((item, index) => {
+                const time = item[0];
+                const barPos = item[1];
+                const isDownbeat = barPos === 1;
+
+                const row = document.createElement('tr');
+                row.className = isDownbeat ? 'downbeat-row' : '';
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${time.toFixed(3)}s</td>
+                    <td>${isDownbeat ? 'Downbeat' : `Beat ${barPos}`}</td>
+                `;
+                row.addEventListener('click', () => {
+                    audioPlayer.currentTime = time;
+                });
+                tbody.appendChild(row);
+            });
+        }
+
+        function toggleBeatList() {
+            const list = document.getElementById('beat-list');
+            const btn = document.getElementById('beat-list-toggle');
+            list.classList.toggle('hidden');
+            btn.textContent = list.classList.contains('hidden') ? 'Show List' : 'Hide List';
+        }
+
+        function loadNewSong() {
+            // Cleanup current file
+            if (currentFilename) {
+                fetch('/cleanup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: currentFilename })
+                });
+            }
+
+            // Reset state
+            currentFile = null;
+            currentFilename = null;
+            beats = [];
+            downbeats = [];
+            beatData = [];
+            duration = 0;
+            isPlaying = false;
+
+            // Reset UI
+            audioPlayer.pause();
+            audioPlayer.src = '';
+            beatMarkers.innerHTML = '';
+            progressFill.style.width = '0%';
+            playhead.style.left = '0';
+
+            uploadSection.classList.remove('hidden');
+            playerSection.classList.remove('visible');
+            resultsSection.classList.add('hidden');
+
+            fileInput.value = '';
+        }
+
+        // Utility functions
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function showStatus(message, type) {
+            statusMessage.className = `status-message ${type}`;
+            statusMessage.innerHTML = type === 'loading'
+                ? `<span class="spinner"></span>${message}`
+                : message;
+            statusMessage.classList.remove('hidden');
+        }
+
+        function hideStatus() {
+            statusMessage.classList.add('hidden');
+        }
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            if (audioBuffer) {
+                drawWaveform(audioBuffer);
+                renderBeatMarkers();
+            }
+        });
+    </script>
+</body>
+</html>

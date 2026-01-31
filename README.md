@@ -107,6 +107,34 @@ onsets = madmom.features.onsets.OnsetPeakPickingProcessor(fps=100)(activations)
 print(f"Detected onsets at: {onsets}")
 ```
 
+## Web Interface
+
+A browser-based interface is included for visualizing beat detection results.
+
+### Running the Web App
+
+```bash
+# Install madmom-modern first
+pip install -e .
+
+# Install web dependencies and run
+cd webapp
+pip install -r requirements.txt
+python app.py
+```
+
+Then open `http://localhost:5000` in your browser.
+
+### Web Interface Features
+
+- Upload audio files (WAV, MP3, FLAC, OGG, M4A, AAC)
+- Interactive waveform with beat/downbeat markers
+- Adjustable detection parameters (BPM range, time signatures)
+- Click beats to jump to that position in the song
+- Real-time results (estimated BPM, beat count, bar count)
+
+See [webapp/README.md](webapp/README.md) for detailed documentation.
+
 ## Documentation
 
 For detailed documentation, please refer to:

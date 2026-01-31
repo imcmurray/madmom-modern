@@ -1,0 +1,16 @@
+# Madmom Modern Web Interface Requirements
+
+# Web framework
+flask>=3.0
+
+# File handling
+werkzeug>=3.0
+
+# Audio processing (madmom dependencies)
+numpy>=2.0
+scipy>=1.13
+cython>=3.0
+mido>=1.2.8
+
+# Optional: for better audio file support
+# pydub>=0.25  # Requires ffmpeg
