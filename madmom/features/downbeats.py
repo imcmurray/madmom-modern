@@ -284,7 +284,9 @@ class DBNDownBeatTrackingProcessor(Processor):
         results = list(self.map(_process_dbn, zip(self.hmms,
                                                   it.repeat(activations))))
         # choose the best HMM (highest log probability)
-        best = np.argmax(np.asarray(results)[:, 1])
+        # Note: we can't use np.asarray(results)[:, 1] because paths can have
+        # different lengths, causing an inhomogeneous array error in NumPy 2.x
+        best = np.argmax([r[1] for r in results])
         # the best path through the state space
         path, _ = results[best]
         # the state space and observation model of the best HMM
