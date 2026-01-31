@@ -13,7 +13,6 @@ The audio files in this directory are **© RinseRepeatLabs.com** and are include
 
 **Not permitted:**
 - Commercial use of any kind
-- Redistribution outside of this repository
 - Use in commercial products or services
 
 For commercial licensing inquiries, contact RinseRepeatLabs.com.
