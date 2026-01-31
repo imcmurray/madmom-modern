@@ -56,53 +56,10 @@ def tanh(x, out=None):
     return np.tanh(x, out)
 
 
-try:
-    # pylint: disable=no-name-in-module
-    # pylint: disable=wrong-import-order
-    # pylint: disable=wrong-import-position
-
-    # try to use a faster sigmoid function
-    from distutils.version import LooseVersion
-    from scipy.version import version as scipy_version
-    # we need a recent version of scipy, older have a bug in expit
-    # https://github.com/scipy/scipy/issues/3385
-    if LooseVersion(scipy_version) < LooseVersion("0.14"):
-        # Note: Raising an AttributeError might not be the best idea ever
-        #       (i.e. ImportError would be more appropriate), but older
-        #       versions of scipy not having the expit function raise the same
-        #       error. In some cases this check fails, don't know why...
-        raise AttributeError
-    from scipy.special import expit as _sigmoid
-except AttributeError:
-    # define a fallback function
-    def _sigmoid(x, out=None):
-        """
-        Logistic sigmoid function.
-
-        Parameters
-        ----------
-        x : numpy array
-            Input data.
-        out : numpy array, optional
-            Array to hold the output data.
-
-        Returns
-        -------
-        numpy array
-            Logistic sigmoid of input data.
-
-        """
-        # sigmoid = 0.5 * (1. + np.tanh(0.5 * x))
-        if out is None:
-            out = np.asarray(.5 * x)
-        else:
-            if out is not x:
-                out[:] = x
-            out *= .5
-        np.tanh(out, out=out)
-        out += 1
-        out *= .5
-        return out
+# Use scipy's expit as the sigmoid function (the bug in scipy < 0.14 is
+# no longer relevant since this project requires scipy >= 1.14)
+# https://github.com/scipy/scipy/issues/3385
+from scipy.special import expit as _sigmoid
 
 
 def sigmoid(x, out=None):
