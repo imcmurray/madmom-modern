@@ -1,0 +1,104 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel", "cython>=3.0", "numpy>=2.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "madmom-modern"
+version = "0.17.0"
+description = "Modernized fork of madmom audio analysis library for Python 3.11+ and NumPy 2.x+"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "BSD-3-Clause"}
+authors = [
+    {name = "Department of Computational Perception, JKU & OFAI", email = "madmom-users@googlegroups.com"}
+]
+maintainers = [
+    {name = "madmom-modern maintainers"}
+]
+keywords = [
+    "audio",
+    "music",
+    "signal processing",
+    "beat detection",
+    "onset detection",
+    "music information retrieval",
+    "neural network"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Cython",
+    "Environment :: Console",
+    "License :: OSI Approved :: BSD License",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy>=2.0",
+    "scipy>=1.13",
+    "cython>=3.0",
+    "mido>=1.2.8",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.4",
+]
+docs = [
+    "sphinx>=7.0",
+    "sphinx-rtd-theme>=2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/imcmurray/madmom-modern"
+Documentation = "https://madmom.readthedocs.io"
+Repository = "https://github.com/imcmurray/madmom-modern"
+Issues = "https://github.com/imcmurray/madmom-modern/issues"
+Changelog = "https://github.com/imcmurray/madmom-modern/blob/main/CHANGELOG.md"
+
+[tool.setuptools]
+packages = ["madmom", "madmom.audio", "madmom.evaluation", "madmom.features", "madmom.io", "madmom.ml", "madmom.ml.nn", "madmom.models", "madmom.utils"]
+
+[tool.setuptools.package-data]
+madmom = [
+    "models/__init__.py",
+    "models/LICENSE",
+    "models/README.rst",
+    "models/beats/*/*.pkl",
+    "models/chords/*/*.pkl",
+    "models/chroma/*/*.pkl",
+    "models/downbeats/*/*.pkl",
+    "models/key/*/*.pkl",
+    "models/notes/*/*.pkl",
+    "models/onsets/*/*.pkl",
+    "models/patterns/*/*.pkl",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
