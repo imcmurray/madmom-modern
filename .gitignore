@@ -96,11 +96,15 @@ venv.bak/
 # Local development
 .local/
 
-# Audio test files
+# Audio test files (but allow samples/ directory)
 *.wav
 *.mp3
 *.flac
 *.ogg
+!samples/*.mp3
+!samples/*.wav
+!samples/*.flac
+!samples/*.ogg
 
 # Documentation
 docs/_build/
