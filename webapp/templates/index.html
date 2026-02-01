@@ -639,6 +639,127 @@
             color: var(--text-secondary);
         }
 
+        .realtime-timesig {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-primary);
+            padding: 8px 14px;
+            border-radius: 8px;
+            min-width: 80px;
+        }
+
+        .realtime-timesig-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--downbeat-color);
+            font-family: monospace;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        .realtime-timesig-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .realtime-timesig.no-data .realtime-timesig-value {
+            color: var(--text-secondary);
+        }
+
+        .zoom-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 20;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .waveform-container:hover .zoom-controls {
+            opacity: 1;
+        }
+
+        .zoom-controls.visible {
+            opacity: 1;
+        }
+
+        .zoom-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+        }
+
+        .zoom-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .zoom-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .zoom-btn:disabled:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-secondary);
+        }
+
+        .zoom-info {
+            display: flex;
+            align-items: center;
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent-secondary);
+            border-radius: 6px;
+            padding: 0 10px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .waveform-scroll-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .waveform-scroll-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .waveform-scroll-container::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+            border-radius: 4px;
+        }
+
+        .waveform-scroll-container::-webkit-scrollbar-thumb {
+            background: var(--accent-secondary);
+            border-radius: 4px;
+        }
+
+        .waveform-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+
+        .waveform-inner {
+            position: relative;
+            height: 100%;
+            min-width: 100%;
+        }
+
         @media (max-width: 768px) {
             header h1 {
                 font-size: 1.8rem;
@@ -696,9 +817,19 @@
             </div>
 
             <div class="waveform-container" id="waveform-container">
-                <canvas id="waveform"></canvas>
-                <div class="beat-markers" id="beat-markers"></div>
-                <div class="playhead" id="playhead" style="left: 0;"></div>
+                <div class="zoom-controls" id="zoom-controls">
+                    <button class="zoom-btn" id="zoom-out-btn" onclick="zoomOut()" title="Zoom Out">−</button>
+                    <div class="zoom-info" id="zoom-info">1x</div>
+                    <button class="zoom-btn" id="zoom-in-btn" onclick="zoomIn()" title="Zoom In">+</button>
+                    <button class="zoom-btn" id="zoom-reset-btn" onclick="zoomReset()" title="Reset Zoom">↺</button>
+                </div>
+                <div class="waveform-scroll-container" id="waveform-scroll-container">
+                    <div class="waveform-inner" id="waveform-inner">
+                        <canvas id="waveform"></canvas>
+                        <div class="beat-markers" id="beat-markers"></div>
+                        <div class="playhead" id="playhead" style="left: 0;"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="legend">
@@ -736,6 +867,10 @@
                 <div class="realtime-bpm no-data" id="realtime-bpm">
                     <span class="realtime-bpm-value" id="realtime-bpm-value">--</span>
                     <span class="realtime-bpm-label">BPM</span>
+                </div>
+                <div class="realtime-timesig no-data" id="realtime-timesig">
+                    <span class="realtime-timesig-value" id="realtime-timesig-value">--</span>
+                    <span class="realtime-timesig-label">Time</span>
                 </div>
             </div>
 
@@ -844,6 +979,10 @@
                     <div class="result-value" id="result-bars">--</div>
                     <div class="result-label">Bars</div>
                 </div>
+                <div class="result-card" id="timesig-card">
+                    <div class="result-value" id="result-timesig">--</div>
+                    <div class="result-label">Time Signature</div>
+                </div>
             </div>
 
             <div class="beat-list-header" style="margin-top: 20px;">
@@ -886,6 +1025,15 @@
         let downbeats = [];
         let duration = 0;
 
+        // Zoom state
+        let zoomLevel = 1;
+        const MIN_ZOOM = 1;
+        const MAX_ZOOM = 20;
+        const ZOOM_STEP = 1.5;
+
+        // Time signature state
+        let detectedTimeSignature = null;
+
         // DOM Elements
         const audioPlayer = document.getElementById('audio-player');
         const uploadSection = document.getElementById('upload-section');
@@ -899,6 +1047,11 @@
         const progressFill = document.getElementById('progress-fill');
         const samplesSection = document.getElementById('samples-section');
         const samplesGrid = document.getElementById('samples-grid');
+        const waveformScrollContainer = document.getElementById('waveform-scroll-container');
+        const waveformInner = document.getElementById('waveform-inner');
+        const zoomInfo = document.getElementById('zoom-info');
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
 
         // Load sample files on page load
         loadSamples();
@@ -1070,11 +1223,16 @@
         function drawWaveform(buffer) {
             const canvas = waveformCanvas;
             const ctx = canvas.getContext('2d');
-            const container = canvas.parentElement;
+            const container = waveformScrollContainer;
 
-            // Set canvas size
-            canvas.width = container.offsetWidth;
+            // Calculate zoomed width
+            const baseWidth = container.offsetWidth;
+            const zoomedWidth = Math.floor(baseWidth * zoomLevel);
+
+            // Set canvas and inner container size
+            canvas.width = zoomedWidth;
             canvas.height = container.offsetHeight;
+            waveformInner.style.width = zoomedWidth + 'px';
 
             const data = buffer.getChannelData(0);
             const step = Math.ceil(data.length / canvas.width);
@@ -1100,6 +1258,55 @@
                 ctx.fillStyle = '#4a5568';
                 ctx.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
             }
+
+            // Update zoom controls state
+            updateZoomControls();
+        }
+
+        // Zoom control functions
+        function zoomIn() {
+            if (zoomLevel < MAX_ZOOM) {
+                const oldZoom = zoomLevel;
+                zoomLevel = Math.min(MAX_ZOOM, zoomLevel * ZOOM_STEP);
+                applyZoom(oldZoom);
+            }
+        }
+
+        function zoomOut() {
+            if (zoomLevel > MIN_ZOOM) {
+                const oldZoom = zoomLevel;
+                zoomLevel = Math.max(MIN_ZOOM, zoomLevel / ZOOM_STEP);
+                applyZoom(oldZoom);
+            }
+        }
+
+        function zoomReset() {
+            zoomLevel = 1;
+            applyZoom(1);
+            waveformScrollContainer.scrollLeft = 0;
+        }
+
+        function applyZoom(oldZoom) {
+            if (!audioBuffer) return;
+
+            // Remember scroll position relative to content
+            const scrollRatio = waveformScrollContainer.scrollWidth > 0
+                ? (waveformScrollContainer.scrollLeft + waveformScrollContainer.offsetWidth / 2) / waveformScrollContainer.scrollWidth
+                : 0;
+
+            // Redraw waveform with new zoom
+            drawWaveform(audioBuffer);
+            renderBeatMarkers();
+
+            // Restore scroll position to keep same content centered
+            const newScrollLeft = (scrollRatio * waveformScrollContainer.scrollWidth) - (waveformScrollContainer.offsetWidth / 2);
+            waveformScrollContainer.scrollLeft = Math.max(0, newScrollLeft);
+        }
+
+        function updateZoomControls() {
+            zoomInfo.textContent = zoomLevel.toFixed(1) + 'x';
+            zoomInBtn.disabled = zoomLevel >= MAX_ZOOM;
+            zoomOutBtn.disabled = zoomLevel <= MIN_ZOOM;
         }
 
         function renderBeatMarkers() {
@@ -1107,13 +1314,16 @@
 
             if (!duration || duration === 0) return;
 
-            const containerWidth = beatMarkers.offsetWidth;
+            // Calculate the actual zoomed width
+            const containerWidth = waveformInner.offsetWidth;
 
             beats.forEach((time, index) => {
                 const isDownbeat = downbeats.includes(time);
                 const marker = document.createElement('div');
                 marker.className = `beat-marker ${isDownbeat ? 'downbeat' : 'beat'}`;
-                marker.style.left = `${(time / duration) * 100}%`;
+                // Use pixel position instead of percentage for accuracy with zoom
+                const position = (time / duration) * containerWidth;
+                marker.style.left = `${position}px`;
                 marker.title = `${isDownbeat ? 'Downbeat' : 'Beat'}: ${time.toFixed(3)}s`;
                 beatMarkers.appendChild(marker);
             });
@@ -1143,9 +1353,31 @@
         audioPlayer.addEventListener('timeupdate', () => {
             const progress = (audioPlayer.currentTime / duration) * 100;
             progressFill.style.width = `${progress}%`;
-            playhead.style.left = `${progress}%`;
+
+            // Update playhead position using pixel coordinates for zoomed waveform
+            const containerWidth = waveformInner.offsetWidth;
+            const playheadPos = (audioPlayer.currentTime / duration) * containerWidth;
+            playhead.style.left = `${playheadPos}px`;
+
+            // Auto-scroll to follow playhead when playing and zoomed
+            if (isPlaying && zoomLevel > 1) {
+                const visibleWidth = waveformScrollContainer.offsetWidth;
+                const scrollLeft = waveformScrollContainer.scrollLeft;
+                const scrollRight = scrollLeft + visibleWidth;
+
+                // If playhead is outside visible area, scroll to center it
+                if (playheadPos < scrollLeft || playheadPos > scrollRight) {
+                    waveformScrollContainer.scrollLeft = playheadPos - visibleWidth / 2;
+                }
+                // If playhead is near the right edge, scroll to keep it in view
+                else if (playheadPos > scrollRight - visibleWidth * 0.2) {
+                    waveformScrollContainer.scrollLeft = playheadPos - visibleWidth * 0.5;
+                }
+            }
+
             document.getElementById('current-time').textContent = formatTime(audioPlayer.currentTime);
             updateRealtimeBPM(audioPlayer.currentTime);
+            updateRealtimeTimeSignature(audioPlayer.currentTime);
         });
 
         function updateRealtimeBPM(currentTime) {
@@ -1186,11 +1418,110 @@
             bpmElement.classList.remove('no-data');
         }
 
+        function updateRealtimeTimeSignature(currentTime) {
+            const timesigElement = document.getElementById('realtime-timesig');
+            const timesigValue = document.getElementById('realtime-timesig-value');
+
+            if (beatData.length < 2) {
+                timesigValue.textContent = '--';
+                timesigElement.classList.add('no-data');
+                return;
+            }
+
+            // Find the current bar based on current time
+            // beatData is array of [time, beat_position] where beat_position 1 = downbeat
+            const windowSize = 4.0; // Look at beats within 4 seconds
+            const nearbyBeats = beatData.filter(beat =>
+                beat[0] >= currentTime - windowSize && beat[0] <= currentTime + windowSize
+            );
+
+            if (nearbyBeats.length < 2) {
+                // Fall back to detected time signature from full analysis
+                if (detectedTimeSignature) {
+                    timesigValue.textContent = detectedTimeSignature;
+                    timesigElement.classList.remove('no-data');
+                } else {
+                    timesigValue.textContent = '--';
+                    timesigElement.classList.add('no-data');
+                }
+                return;
+            }
+
+            // Find the maximum beat position in the current section (this tells us beats per bar)
+            let maxBeatPos = 1;
+            for (const beat of nearbyBeats) {
+                if (beat[1] > maxBeatPos) {
+                    maxBeatPos = beat[1];
+                }
+            }
+
+            // Display time signature (assuming quarter note gets the beat)
+            const timeSignature = `${maxBeatPos}/4`;
+            timesigValue.textContent = timeSignature;
+            timesigElement.classList.remove('no-data');
+        }
+
+        function detectTimeSignature() {
+            // Analyze the full beatData to determine the most common time signature
+            if (beatData.length < 4) {
+                detectedTimeSignature = null;
+                return;
+            }
+
+            // Find all bar lengths (count beats between downbeats)
+            const barLengths = [];
+            let currentBarLength = 0;
+
+            for (let i = 0; i < beatData.length; i++) {
+                currentBarLength++;
+                if (i < beatData.length - 1 && beatData[i + 1][1] === 1) {
+                    barLengths.push(currentBarLength);
+                    currentBarLength = 0;
+                }
+            }
+
+            if (barLengths.length === 0) {
+                // Find max beat position instead
+                let maxPos = 1;
+                for (const beat of beatData) {
+                    if (beat[1] > maxPos) maxPos = beat[1];
+                }
+                detectedTimeSignature = `${maxPos}/4`;
+                return;
+            }
+
+            // Find most common bar length
+            const counts = {};
+            for (const len of barLengths) {
+                counts[len] = (counts[len] || 0) + 1;
+            }
+
+            let mostCommon = barLengths[0];
+            let maxCount = 0;
+            for (const [len, count] of Object.entries(counts)) {
+                if (count > maxCount) {
+                    mostCommon = parseInt(len);
+                    maxCount = count;
+                }
+            }
+
+            detectedTimeSignature = `${mostCommon}/4`;
+        }
+
         function seekAudio(e) {
             const rect = e.currentTarget.getBoundingClientRect();
             const pos = (e.clientX - rect.left) / rect.width;
             audioPlayer.currentTime = pos * duration;
         }
+
+        // Click on waveform to seek (works with zoom)
+        waveformScrollContainer.addEventListener('click', (e) => {
+            if (!duration) return;
+            const rect = waveformInner.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const pos = clickX / waveformInner.offsetWidth;
+            audioPlayer.currentTime = Math.max(0, Math.min(duration, pos * duration));
+        });
 
         document.getElementById('volume-slider').addEventListener('input', (e) => {
             audioPlayer.volume = e.target.value;
@@ -1285,6 +1616,9 @@
                 downbeats = data.downbeats || [];
                 beatData = data.beat_data || [];
 
+                // Detect time signature from beat data
+                detectTimeSignature();
+
                 // Render markers
                 renderBeatMarkers();
 
@@ -1295,11 +1629,14 @@
                 if (mode === 'downbeats') {
                     document.getElementById('result-downbeats').textContent = data.num_downbeats || 0;
                     document.getElementById('result-bars').textContent = data.num_downbeats || 0;
+                    document.getElementById('result-timesig').textContent = detectedTimeSignature || '--';
                     document.getElementById('downbeats-card').classList.remove('hidden');
                     document.getElementById('bars-card').classList.remove('hidden');
+                    document.getElementById('timesig-card').classList.remove('hidden');
                 } else {
                     document.getElementById('downbeats-card').classList.add('hidden');
                     document.getElementById('bars-card').classList.add('hidden');
+                    document.getElementById('timesig-card').classList.add('hidden');
                 }
 
                 // Populate beat list
@@ -1307,6 +1644,7 @@
 
                 resultsSection.classList.remove('hidden');
                 showStatus('Analysis complete!', 'success');
+                showZoomControlsIfNeeded();
 
                 setTimeout(hideStatus, 3000);
 
@@ -1366,6 +1704,8 @@
             beatData = [];
             duration = 0;
             isPlaying = false;
+            zoomLevel = 1;
+            detectedTimeSignature = null;
 
             // Reset UI
             audioPlayer.pause();
@@ -1375,6 +1715,11 @@
             playhead.style.left = '0';
             document.getElementById('realtime-bpm-value').textContent = '--';
             document.getElementById('realtime-bpm').classList.add('no-data');
+            document.getElementById('realtime-timesig-value').textContent = '--';
+            document.getElementById('realtime-timesig').classList.add('no-data');
+            waveformScrollContainer.scrollLeft = 0;
+            waveformInner.style.width = '100%';
+            updateZoomControls();
 
             uploadSection.classList.remove('hidden');
             samplesSection.classList.remove('hidden');
@@ -1411,6 +1756,28 @@
                 renderBeatMarkers();
             }
         });
+
+        // Mouse wheel zoom on waveform
+        waveformScrollContainer.addEventListener('wheel', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                if (e.deltaY < 0) {
+                    zoomIn();
+                } else {
+                    zoomOut();
+                }
+            }
+        }, { passive: false });
+
+        // Show zoom controls always when beats have been analyzed
+        function showZoomControlsIfNeeded() {
+            const zoomControls = document.getElementById('zoom-controls');
+            if (beats.length > 0) {
+                zoomControls.classList.add('visible');
+            } else {
+                zoomControls.classList.remove('visible');
+            }
+        }
     </script>
 </body>
 </html>
