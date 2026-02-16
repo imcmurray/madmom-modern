@@ -157,14 +157,28 @@ onsets = madmom.features.onsets.OnsetPeakPickingProcessor(fps=100)(activations)
 print(f"Detected onsets at: {onsets}")
 ```
 
-## Web Interface
+## Web Interface — See It in Action
 
-A browser-based interface is included for visualizing beat detection results.
+Most MIR libraries leave you staring at arrays of numbers. **madmom-modern ships with a built-in web app** so you can drag in any song and instantly *see* and *hear* the beat detection working in real time. No extra tooling, no Jupyter notebooks, no matplotlib boilerplate — just drop a file and go.
+
+<p align="center">
+  <img src="docs/screenshots/webapp-upload.png" alt="Upload your own songs or use the included samples" width="720">
+</p>
+
+<p align="center"><em>Drag-and-drop any audio file or pick from the included samples — supports WAV, MP3, FLAC, OGG, M4A, and AAC.</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/webapp-results.png" alt="Interactive waveform with beat and downbeat markers" width="720">
+</p>
+
+<p align="center"><em>Interactive waveform with color-coded beat (green) and downbeat (orange) markers, zoomable display, playback controls, and full detection results at a glance.</em></p>
+
+**Why this matters:** Whether you're evaluating madmom for a project, teaching a class on MIR, or just curious what 125 BPM looks like overlaid on a waveform — the web interface gets you from zero to insight in seconds. Load your own music, tweak the BPM range and time signature, hit **Analyze Beats**, and watch the results appear. Click any beat marker to jump straight to that moment in the song.
 
 ### Running the Web App
 
 ```bash
-# First, set up and activate a virtual environment if you haven't already
+# Set up and activate a virtual environment if you haven't already
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
@@ -177,15 +191,16 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Then open `http://localhost:5000` in your browser. Sample audio files are available in the `samples/` directory for testing.
+Then open `http://localhost:5000` in your browser. Sample audio files are included so you can start exploring immediately.
 
-### Web Interface Features
+### Web Interface Highlights
 
-- Upload audio files (WAV, MP3, FLAC, OGG, M4A, AAC)
-- Interactive waveform with beat/downbeat markers
-- Adjustable detection parameters (BPM range, time signatures)
-- Click beats to jump to that position in the song
-- Real-time results (estimated BPM, beat count, bar count)
+- **Drag-and-drop upload** — WAV, MP3, FLAC, OGG, M4A, AAC (up to 50 MB)
+- **Interactive zoomable waveform** with color-coded beat and downbeat markers
+- **Adjustable detection parameters** — BPM range, time signatures (3/4, 4/4, and more)
+- **Click-to-seek** — click any beat marker to jump to that position in the song
+- **Instant results dashboard** — estimated BPM, total beats, downbeats, bars, and detected time signature
+- **Sample files included** — start experimenting right away, no audio files needed
 
 See [webapp/README.md](webapp/README.md) for detailed documentation.
 
